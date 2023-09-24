@@ -1,2 +1,2 @@
 # 03_html
-3주차 html
+html 수업용
