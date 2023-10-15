@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <button id="getDataButton">데이터 가져오기</button>
+    <p id="dataDisplay"></p>
+
+    <script>
+        const getDataButton = document.getElementById('getDataButton');
+        const dataDisplay = document.getElementById('dataDisplay');
+
+        getDataButton.addEventListener('click', () => {
+            // 서버로 GET 요청 보내기
+            fetch('http://localhost:3000/hi')
+                .then(response => response.text())
+                .then(data => {
+                    // 받아온 데이터를 <p> 태그 안에 표시
+                    dataDisplay.innerText = data;
+                })
+                .catch(error => {
+                    console.error('데이터 가져오기 실패', error);
+                });
+        });
+    </script>
+</body>
+</html>
