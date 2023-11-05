@@ -16,7 +16,7 @@ let appleX = 0;
 let appleY = 0;
 const obstacles = [];
 let isGameOver = false;
-let score = 3; // 점수 변수 추가
+let score = 0; // 점수 변수 추가
 let scoreDisplay = document.getElementById('scoreDisplay'); // 점수를 표시할 요소
 
 // 게임 시작 시간을 기록하는 변수
@@ -121,7 +121,7 @@ function GameLoop()
 setInterval(createRandomObstacle, obstacleCreationInterval);
 
     setInterval(() => {
-        snakeSpeed += 0.1;
+        snakeSpeed += 1;
     }, 10000);
 
     canvas.addEventListener('mousemove', (e) => {
@@ -175,6 +175,10 @@ function moveSnake()
 
         snakeX += (dx / distance) * snakeSpeed;
         snakeY += (dy / distance) * snakeSpeed;
+
+        //뱀의 머리와 몸통의 거리
+        snakeX += (1 / 3) * (dx / distance) * snakeSize;
+        snakeY += (1 / 3) * (dy / distance) * snakeSize;
 
         bodyParts.unshift({ x: snakeX, y: snakeY });
             
