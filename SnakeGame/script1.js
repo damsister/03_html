@@ -7,100 +7,122 @@ let snakeY = canvas.height / 2;
 let mouseX = snakeX;
 let mouseY = snakeY;
 let isMoving = false;
-let isBoosted = false; // 클릭으로 속도를 높이는 여부
-let snakeSpeed = 5; // 뱀의 초기 이동 속도
+let isBoosted = false;
+let snakeSpeed = 5;
+const speedMultiplier = 1.0; // speedMultiplier 초기값 설정
 const bodyParts = [{ x: snakeX, y: snakeY }];
 const appleSize = 20;
 let appleX = 0;
 let appleY = 0;
-let angle = 0; // 초기 회전 각도
 const obstacles = [];
-const score = document.getElementById("body");
-const timer = document.getElementById("timer");
+let isGameOver = false;
+let score = 3; // 점수 변수 추가
+let scoreDisplay = document.getElementById('scoreDisplay'); // 점수를 표시할 요소
 
-    function drawSnake() 
+// 게임 시작 시간을 기록하는 변수
+let gameStartTime = Date.now();
+// 게임 시간을 표시할 HTML 요소
+let timeDisplay = document.getElementById('timeDisplay');
+
+class Obstacle 
+{
+    constructor(x, y, size, type, angle) 
     {
-        ctx.fillStyle = 'green';
-        for (let i = 0; i < bodyParts.length; i++) 
+        this.x = x;
+        this.y = y;
+        this.speed = (Math.random() * 2 + 1) * speedMultiplier;
+        this.size = size;
+        this.type = type;
+        this.angle = angle;
+    }
+
+    update() 
+    {
+        this.x += Math.cos(this.angle) * this.speed;
+        this.y += Math.sin(this.angle) * this.speed;
+
+        this.angle += 0.01;
+
+        if (this.x < -this.size ||
+            this.x > canvas.width ||
+            this.y < -this.size ||
+            this.y > canvas.height) 
         {
-            const part = bodyParts[i];
-            ctx.beginPath();
-            ctx.arc(part.x + snakeRadius, part.y + snakeRadius, snakeRadius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-            ctx.closePath();
+            obstacles.splice(obstacles.indexOf(this), 1);
         }
     }
 
-    function moveSnake() 
+    GameLoop() 
     {
-        if (isMoving) 
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+
+        if (this.type === 'triangle') 
         {
-            const dx = mouseX - snakeX;
-            const dy = mouseY - snakeY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (distance < snakeSize) 
-            {
-                isMoving = false;
-            }
-
-            snakeX += (dx / distance) * snakeSpeed;
-            snakeY += (dy / distance) * snakeSpeed;
-
-            bodyParts.unshift({ x: snakeX, y: snakeY });
-            if (bodyParts.length > 3) 
-            {
-                bodyParts.pop();
-            }
-        }
-        if (snakeX === appleX && snakeY === appleY) 
+            ctx.fillStyle = 'blue';
+            ctx.beginPath();
+            ctx.moveTo(0, -this.size);
+            ctx.lineTo(this.size, this.size);
+            ctx.lineTo(-this.size, this.size);
+            ctx.closePath();
+            ctx.fill();
+        } 
+        else if (this.type === 'square') 
         {
-            score++;
-            scoreDisplay.textContent = "Score: " + score;
-            moveApple();
+            ctx.fillStyle = 'purple';
+            ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+        } 
+        else if (this.type === 'circle') 
+        {
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+            ctx.fill();
         }
+        ctx.restore();
+    }
+}
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+let obstacleCreationInterval = 2000; // 초기 장애물 생성 간격
+
+function createRandomObstacle() 
+{
+    const x = Math.random() * canvas.width;
+    const y = Math.random() * canvas.height;
+    const size = Math.random() * 20 + 10;
+    const angle = Math.random() * Math.PI * 2;
+    const types = ['triangle', 'square', 'circle'];
+    const type = types[Math.floor(Math.random() * 3)];
+
+    const obstacle = new Obstacle(x, y, size, type, angle);
+    obstacles.push(obstacle);
+    
+    // 게임 진행에 따라 장애물 생성 간격을 줄여 더 빨리 생성되도록 조절합니다.
+    obstacleCreationInterval -= 100; // 필요에 따라 이 값을 조절합니다.
+}
+
+function GameLoop() 
+{
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (const obstacle of obstacles) 
+    {
+        obstacle.update();
+        obstacle.GameLoop();
+    }
+
         drawSnake();
         drawApple();
         checkCollision();
-        requestAnimationFrame(moveSnake);
+        requestAnimationFrame(GameLoop);
+}
 
-        // 호출하여 도형 그리기
-        drawTriangle();
-        drawRectangle();
-        drawCircle();
-        startGame();
-    }
+setInterval(createRandomObstacle, obstacleCreationInterval);
 
-    function drawApple() 
-    {
-        ctx.fillStyle = 'red';
-        ctx.beginPath();
-        ctx.arc(appleX + appleSize / 2, appleY + appleSize / 2, appleSize / 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.closePath();
-    }
-
-    function checkCollision() 
-    {
-        const headX = bodyParts[0].x;
-        const headY = bodyParts[0].y;
-
-        if (headX + snakeSize > appleX && headX < appleX + appleSize &&
-        headY + snakeSize > appleY && headY < appleY + appleSize) 
-        {
-            // 뱀이 사과를 먹음
-            const tail = { x: bodyParts[bodyParts.length - 1].x, y: bodyParts[bodyParts.length - 1].y };
-            bodyParts.push(tail);
-
-            // 새로운 사과 위치 설정
-            appleX = Math.floor(Math.random() * (canvas.width - appleSize));
-            appleY = Math.floor(Math.random() * (canvas.height - appleSize));
-        }
-    }
+    setInterval(() => {
+        snakeSpeed += 0.1;
+    }, 10000);
 
     canvas.addEventListener('mousemove', (e) => {
         mouseX = e.clientX - canvas.getBoundingClientRect().left - snakeRadius;
@@ -109,90 +131,164 @@ const timer = document.getElementById("timer");
     });
 
     canvas.addEventListener('mousedown', (e) => {
-        if (e.button === 0) { // 마우스 왼쪽 버튼 클릭
-            if (!isBoosted) {
-                snakeSpeed *= 2; // 이동 속도 2배 증가
+        if (e.button === 0) 
+        {
+            if (!isBoosted) 
+            {
+                snakeSpeed *= 2;
                 isBoosted = true;
                 setTimeout(() => {
-                    snakeSpeed /= 2; // 지속 시간 후 속도 복구
+                    snakeSpeed /= 2;
                     isBoosted = false;
-                }, 1000); // 1초간 클릭 속도 향상
+                    }, 1000);
             }
         }
     });
 
-    // 초기 사과 위치 설정
+// 뱀 그리기 함수
+function drawSnake() 
+{
+    ctx.fillStyle = 'green';
+    for (let i = 0; i < bodyParts.length; i++) 
+    {
+        const part = bodyParts[i];
+        ctx.beginPath();
+        ctx.arc(part.x, part.y, snakeRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fill();
+        ctx.closePath();
+    }
+}
+
+function moveSnake() 
+{
+    if (isMoving) 
+    {
+        const dx = mouseX - snakeX;
+        const dy = mouseY - snakeY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < snakeSize) 
+        {
+            isMoving = false;
+        }
+
+        snakeX += (dx / distance) * snakeSpeed;
+        snakeY += (dy / distance) * snakeSpeed;
+
+        bodyParts.unshift({ x: snakeX, y: snakeY });
+            
+        if (bodyParts.length > 3) 
+        {
+            bodyParts.pop();
+        }
+    }
+    if (snakeX === appleX && snakeY === appleY) 
+    {
+        score++;
+        scoreDisplay.textContent = "Score: " + score;
+        drawApple();
+    }
+
+    // 현재 시간 계산
+    const currentTime = Date.now();
+    const elapsedTime = (currentTime - gameStartTime) / 1000; // 경과 시간(초) 계산
+    timeDisplay.textContent = "Time: " + elapsedTime.toFixed(0); // 시간 표시
+    //.toFixed(1): 소수점 한 자리
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawSnake();
+    drawApple();
+    checkCollision();
+    requestAnimationFrame(moveSnake);
+}
+
+// 사과 그리기 함수
+function drawApple() 
+{
+    ctx.fillStyle = 'red';
+    ctx.beginPath();
+    ctx.arc(appleX, appleY, appleSize / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.closePath();
+}
+
+function checkCollision() 
+{
+    const headX = bodyParts[0].x;
+    const headY = bodyParts[0].y;
+
+    if (headX + snakeSize > appleX && headX < appleX + appleSize && 
+        headY + snakeSize > appleY && headY < appleY + appleSize) 
+    {
+        // 뱀이 사과를 먹음
+        const tail = { x: bodyParts[bodyParts.length - 1].x, y: bodyParts[bodyParts.length - 1].y };
+        bodyParts.push(tail);
+            score++;
+            scoreDisplay.textContent = "Score: " + score;
+            drawApple();
+
+        // 새로운 사과 위치 설정
+        appleX = Math.floor(Math.random() * (canvas.width - appleSize));
+        appleY = Math.floor(Math.random() * (canvas.height - appleSize));
+    }
+    // 뱀과 장애물 간의 충돌을 확인
+    for (const obstacle of obstacles) 
+    {
+        if (headX + snakeSize > obstacle.x &&
+            headX < obstacle.x + obstacle.size &&
+            headY + snakeSize > obstacle.y &&
+            headY < obstacle.y + obstacle.size) 
+        {
+            isGameOver = true;
+        }
+    }
+
+    if (isGameOver) 
+    {
+        // 게임 종료 시 처리
+        const restartGame = confirm("게임 오버\n점수: " + score + "\n게임을 다시 시작하시겠습니까?");
+        if (restartGame) 
+        {
+            reset(); // 게임을 재설정하고 다시 시작
+        }
+    }
+}
+
+function reset() 
+{
+    // 초기 상태로 변수 및 요소를 설정
+    snakeX = canvas.width / 2;
+    snakeY = canvas.height / 2;
+    mouseX = snakeX;
+    mouseY = snakeY;
+    isMoving = false;
+    isBoosted = false;
+    snakeSpeed = 5;
+    bodyParts.length = 1;
+    bodyParts[0] = { x: snakeX, y: snakeY };
     appleX = Math.floor(Math.random() * (canvas.width - appleSize));
     appleY = Math.floor(Math.random() * (canvas.height - appleSize));
+    obstacles.length = 0;
+    isGameOver = false;
+    score = 0;
+    scoreDisplay.textContent = "Score: " + score;
 
-    // 삼각형 그리기
-    function drawTriangle(x,y) 
-    {
-        ctx.fillStyle = "blue";
-        ctx.save(); //현재 그리기 상태를 스택에 저장
-        ctx.translate(x,y);
-        ctx.rotate(angle); // 각도를 현재 각도로 설정
-        ctx.beginPath();
-        ctx.moveTo(0, -20); // 시작점
-        ctx.lineTo(20, 20); // 첫 번째 꼭지점
-        ctx.lineTo(-20, 20); // 두 번째 꼭지점
-        ctx.closePath(); // 패스 닫기
-        ctx.fill(); // 도형 채우기
-        ctx.restore(); //스택에서 최근에 저장된 그리기 상태를 가져와 복원
-    }
+    // 게임 시작 시간을 다시 기록
+    gameStartTime = Date.now();
+}
 
-    // 사각형 그리기
-    function drawRectangle(x,y)
-    {
-        ctx.fillStyle = "black";
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(angle);
-        ctx.fillRect(-20, -20, 40, 40);
-        ctx.restore();
-    }
+// 초기 사과 위치 설정
+appleX = Math.floor(Math.random() * (canvas.width - appleSize));
+appleY = Math.floor(Math.random() * (canvas.height - appleSize));
 
-    // 원 그리기
-    function drawCircle(x,y) 
-    {
-        ctx.save();
-        ctx.translate(x,y);
-        ctx.rotate(angle);
-        ctx.fillStyle = "pink";
-        ctx.beginPath();
-        ctx.arc(0,0,20,0, Math.PI * 2); // x, y, 반지름, 시작 각도, 종료 각도
-        ctx.fill();
-        ctx.restore();
-    }
+// 뱀의 초기 위치 설정 (중앙에 배치)
+snakeX = canvas.width / 2;
+snakeY = canvas.height / 2;
+mouseX = snakeX;
+mouseY = snakeY;
 
-    function drawFrame() 
-    {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawTriangle(10, 10);
-        drawRectangle(200, 100);
-        drawCircle(300, 100);
-        angle += 0.01; // 각도를 증가하여 회전
-        requestAnimationFrame(drawFrame);
-    }
-
-    function startGame() 
-    {
-        score = 0;
-        timer = 0;
-        drawApple();
-        updateTimer();
-        moveSnake();
-    }
-    
-    function updateTimer() 
-    {
-        timerDisplay.textContent = "Time: " + timer;
-        timer++;
-        setTimeout(updateTimer, 1000);
-    }
-
-    drawFrame();
-
-    
-
-    moveSnake();
+moveSnake(); // 뱀 이동 및 게임 진행
+//게임 루프 시작
+GameLoop(); // 게임 화면 그리기
