@@ -1,20 +1,28 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const snakeSize = 20;
-const snakeRadius = snakeSize / 2;
+const snakeSize = 20; //뱀의 크기
+const snakeRadius = snakeSize / 2; //뱀의 반지름
+
+// 뱀의 초기 위치 설정 (중앙에 배치)
 let snakeX = canvas.width / 2;
 let snakeY = canvas.height / 2;
 let mouseX = snakeX;
 let mouseY = snakeY;
+
 let isMoving = false;
 let isBoosted = false;
 let snakeSpeed = 5;
+const bodyParts = [{ x: snakeX, y: snakeY }]; //몸통 배열
+const appleSize = 20; //사과 크기
+
+//사과 위치 선언
+let appleX;
+let appleY;
+
+//장애물
 const speedMultiplier = 1.0; // speedMultiplier 초기값 설정
-const bodyParts = [{ x: snakeX, y: snakeY }];
-const appleSize = 20;
-let appleX = 0;
-let appleY = 0;
-const obstacles = [];
+const obstacles = []; //장애물
+
 let isGameOver = false;
 let score = 0; // 점수 변수 추가
 let scoreDisplay = document.getElementById('scoreDisplay'); // 점수를 표시할 요소
@@ -26,6 +34,7 @@ let timeDisplay = document.getElementById('timeDisplay');
 
 class Obstacle 
 {
+    //장애물 위치, 속도, 크기, 유형, 회전
     constructor(x, y, size, type, angle) 
     {
         this.x = x;
@@ -36,6 +45,7 @@ class Obstacle
         this.angle = angle;
     }
 
+    //장애물 위치 업데이트
     update() 
     {
         this.x += Math.cos(this.angle) * this.speed;
@@ -52,7 +62,8 @@ class Obstacle
         }
     }
 
-    GameLoop() 
+    //화면에 그리기 위해 메서드 호출
+    draw() 
     {
         ctx.save();
         ctx.translate(this.x, this.y);
@@ -86,6 +97,7 @@ class Obstacle
 
 let obstacleCreationInterval = 2000; // 초기 장애물 생성 간격
 
+//장애물 랜덤 생성
 function createRandomObstacle() 
 {
     const x = Math.random() * canvas.width;
@@ -98,52 +110,49 @@ function createRandomObstacle()
     const obstacle = new Obstacle(x, y, size, type, angle);
     obstacles.push(obstacle);
     
-    // 게임 진행에 따라 장애물 생성 간격을 줄여 더 빨리 생성되도록 조절합니다.
-    obstacleCreationInterval -= 100; // 필요에 따라 이 값을 조절합니다.
+    // 게임 진행에 따라 장애물 생성 간격을 줄여 더 빨리 생성되도록 조절
+    obstacleCreationInterval -= 100;
 }
 
 function GameLoop() 
 {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height); //게임화면 지우기
 
-    for (const obstacle of obstacles) 
+    for (const obstacle of obstacles) //장애물 업데이트 후 그림
     {
         obstacle.update();
-        obstacle.GameLoop();
+        obstacle.draw();
     }
 
-        drawSnake();
-        drawApple();
-        checkCollision();
-        requestAnimationFrame(GameLoop);
+    drawSnake();
+    drawApple();
+    checkCollision();
+    requestAnimationFrame(GameLoop); //GameLoop를 계속 호출하여 게임 업데이트
 }
 
-setInterval(createRandomObstacle, obstacleCreationInterval);
+setInterval(createRandomObstacle, obstacleCreationInterval); //createRandomObstacle함수를 obstacleCreationInterval 간격으로 호출ㄴ
+//setInterval: 일정 시간 간격으로 호출
 
-    setInterval(() => {
-        snakeSpeed += 1;
-    }, 10000);
+canvas.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX - canvas.getBoundingClientRect().left - snakeRadius;
+    mouseY = e.clientY - canvas.getBoundingClientRect().top - snakeRadius;
+    isMoving = true;
+}); //뱀 이동 이벤트
 
-    canvas.addEventListener('mousemove', (e) => {
-        mouseX = e.clientX - canvas.getBoundingClientRect().left - snakeRadius;
-        mouseY = e.clientY - canvas.getBoundingClientRect().top - snakeRadius;
-        isMoving = true;
-    });
-
-    canvas.addEventListener('mousedown', (e) => {
-        if (e.button === 0) 
+canvas.addEventListener('mousedown', (e) => {
+    if (e.button === 0) 
+    {
+        if (!isBoosted) 
         {
-            if (!isBoosted) 
-            {
-                snakeSpeed *= 2;
-                isBoosted = true;
-                setTimeout(() => {
-                    snakeSpeed /= 2;
-                    isBoosted = false;
-                    }, 1000);
-            }
+            snakeSpeed *= 2;
+            isBoosted = true;
+            setTimeout(() => {
+            snakeSpeed /= 2;
+            isBoosted = false;
+            }, 1000); //1초 동안 유지 후 원상복구
         }
-    });
+    }
+}); //뱀 부스터 이벤트
 
 // 뱀 그리기 함수
 function drawSnake() 
@@ -164,6 +173,7 @@ function moveSnake()
 {
     if (isMoving) 
     {
+        //마우스 위치
         const dx = mouseX - snakeX;
         const dy = mouseY - snakeY;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -173,6 +183,7 @@ function moveSnake()
             isMoving = false;
         }
 
+        //마우스 위치를 기반으로 이동
         snakeX += (dx / distance) * snakeSpeed;
         snakeY += (dy / distance) * snakeSpeed;
 
@@ -181,12 +192,15 @@ function moveSnake()
         snakeY += (1 / 3) * (dy / distance) * snakeSize;
 
         bodyParts.unshift({ x: snakeX, y: snakeY });
+        //unshift: 배열의 맨 앞에 하나 이상의 요소를 추가
             
         if (bodyParts.length > 3) 
         {
             bodyParts.pop();
         }
+        //pop: 배열에서 맨 뒤의 요소를 제거하고 반환하는 역할
     }
+    //뱀이 사과를 먹으면 점수가 오른다.
     if (snakeX === appleX && snakeY === appleY) 
     {
         score++;
@@ -203,8 +217,8 @@ function moveSnake()
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawSnake();
     drawApple();
-    checkCollision();
-    requestAnimationFrame(moveSnake);
+    checkCollision(); //충돌 여부 확인
+    requestAnimationFrame(moveSnake); //moveSnake호출하여 게임 업데이트
 }
 
 // 사과 그리기 함수
@@ -218,6 +232,7 @@ function drawApple()
     ctx.closePath();
 }
 
+//충돌 여부 확인 함수
 function checkCollision() 
 {
     const headX = bodyParts[0].x;
@@ -249,6 +264,7 @@ function checkCollision()
         }
     }
 
+    //게임 오버 시
     if (isGameOver) 
     {
         // 게임 종료 시 처리
@@ -287,12 +303,7 @@ function reset()
 appleX = Math.floor(Math.random() * (canvas.width - appleSize));
 appleY = Math.floor(Math.random() * (canvas.height - appleSize));
 
-// 뱀의 초기 위치 설정 (중앙에 배치)
-snakeX = canvas.width / 2;
-snakeY = canvas.height / 2;
-mouseX = snakeX;
-mouseY = snakeY;
 
 moveSnake(); // 뱀 이동 및 게임 진행
 //게임 루프 시작
-GameLoop(); // 게임 화면 그리기
+GameLoop();
