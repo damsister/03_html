@@ -24,7 +24,7 @@ const speedMultiplier = 1.0; //speedMultiplier 초기값 설정
 const obstacles = []; //장애물
 
 let isGameOver = false;
-let score = 0; //점수 변수
+let score = 3; //점수 변수
 let scoreDisplay = document.getElementById('scoreDisplay'); //점수를 표시할 요소
 
 // 게임 시작 시간을 기록하는 변수
@@ -171,7 +171,7 @@ canvas.addEventListener('mousedown', (e) => {
             setTimeout(() => {
             snakeSpeed /= 2;
             isBoosted = false;
-            }, 500); //1초 동안 유지 후 원상복구
+            }, 500); //0.5초 동안 유지 후 원상복구
         }
     }
 }); //뱀 부스터 이벤트
@@ -221,13 +221,6 @@ function moveSnake()
         }
         //pop: 배열에서 맨 뒤의 요소를 제거하고 반환하는 역할
     }
-    //뱀이 사과를 먹으면 점수가 오른다.
-    if (snakeX === appleX && snakeY === appleY) 
-    {
-        score++;
-        scoreDisplay.textContent = "Score: " + score;
-        drawApple();
-    }
 
     // 현재 시간 계산
     const currentTime = Date.now();
@@ -266,7 +259,7 @@ function checkCollision()
         const tail = { x: bodyParts[bodyParts.length - 1].x, y: bodyParts[bodyParts.length - 1].y };
         bodyParts.push(tail);
             score++;
-            scoreDisplay.textContent = "Score: " + score;
+            scoreDisplay.textContent = "Body: " + score;
             drawApple();
 
         // 새로운 사과 위치 설정
@@ -291,7 +284,7 @@ function checkCollision()
     if (isGameOver) 
     {
         // 게임 종료 시 처리
-        const restartGame = confirm("게임 오버\n점수: " + score + "\n게임을 다시 시작하시겠습니까?");
+        const restartGame = confirm("게임 오버\n몸 길이: " + score + "\n게임을 다시 시작하시겠습니까?");
         if (restartGame) 
         {
             reset(); // 게임을 재설정하고 다시 시작
@@ -315,8 +308,8 @@ function reset()
     appleY = Math.floor(Math.random() * (canvas.height - appleSize));
     obstacles.length = 0;
     isGameOver = false;
-    score = 0;
-    scoreDisplay.textContent = "Score: " + score;
+    score = 3;
+    scoreDisplay.textContent = "Body: " + score;
 
     // 게임 시작 시간을 다시 기록
     gameStartTime = Date.now();
